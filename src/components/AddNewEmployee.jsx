@@ -1,21 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
-import DialogContent from "@mui/material/DialogContent";
+import DialogContent from "@mui/material.DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
+import { z } from "zod";
 
 export default function AddNewEmployee({ setChanges }) {
-  const handleClickOpen = () => {
-    setOpen(true);
-  };
-
-  const handleClose = () => {
-    setOpen(false);
-  };
-
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = useState(false);
   const [employeeData, setEmployeeData] = useState({
     designation: "",
     name: "",
@@ -23,6 +16,54 @@ export default function AddNewEmployee({ setChanges }) {
     bio: "",
     url: "",
   });
+  const [errors, setErrors] = useState({});
+
+  const employeeSchema = z.object({
+    name: z.string().min(1, { message: "Name is required" }),
+    designation: z.string().min(1, { message: "Designation is required" }),
+    age: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
+      message: "Age must be a positive number",
+    }),
+    bio: z.string().min(1, { message: "Bio is required" }),
+    url: z
+      .string()
+      .url({ message: "Invalid URL format" })
+      .optional()
+      .or(z.literal("")),
+  });
+
+  const handleClickOpen = () => setOpen(true);
+  const handleClose = () => setOpen(false);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const formJson = Object.fromEntries(formData.entries());
+
+    try {
+      const validatedData = employeeSchema.parse(formJson);
+      const res = await fetch("http://localhost:3000/create-employee", {
+        method: "POST",
+        body: JSON.stringify(validatedData),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setChanges((prev) => !prev);
+        alert(data.message);
+      } else {
+        alert(data.message);
+      }
+      handleClose();
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        const errorObject = err.format();
+        setErrors(errorObject);
+      }
+    }
+  };
 
   return (
     <React.Fragment>
@@ -30,128 +71,35 @@ export default function AddNewEmployee({ setChanges }) {
         Add New Employee
       </Button>
 
-      <Dialog
-        open={open}
-        onClose={handleClose}
-        PaperProps={{
-          component: "form",
-          onSubmit: (event) => {
-            event.preventDefault();
-            const formData = new FormData(event.currentTarget);
-            const formJson = Object.fromEntries(formData.entries());
-            const email = formJson.email;
-            console.log(email);
-            handleClose();
-          },
-        }}
-      >
+      <Dialog open={open} onClose={handleClose}>
         <DialogTitle>Add New Employee</DialogTitle>
         <DialogContent>
-          <TextField
-            autoFocus
-            required
-            margin="dense"
-            id="name"
-            name="name"
-            label="Name"
-            type="text"
-            fullWidth
-            variant="standard"
-            onChange={(event) =>
-              setEmployeeData({
-                ...employeeData,
-                name: event.target.value,
-              })
-            }
-          />
-          <TextField
-            autoFocus
-            required
-            margin="dense"
-            id="designation"
-            name="designation"
-            label="Designation"
-            type="text"
-            fullWidth
-            variant="standard"
-            onChange={(event) =>
-              setEmployeeData({
-                ...employeeData,
-                designation: event.target.value,
-              })
-            }
-          />
-          <TextField
-            autoFocus
-            required
-            margin="dense"
-            id="age"
-            name="age"
-            label="Age"
-            type="text"
-            fullWidth
-            variant="standard"
-            onChange={(event) =>
-              setEmployeeData({
-                ...employeeData,
-                age: event.target.value,
-              })
-            }
-          />
-          <TextField
-            autoFocus
-            required
-            margin="dense"
-            id="bio"
-            name="bio"
-            label="Bio"
-            type="text"
-            fullWidth
-            variant="standard"
-            onChange={(event) =>
-              setEmployeeData({
-                ...employeeData,
-                bio: event.target.value,
-              })
-            }
-          />
-          <TextField
-            autoFocus
-            required
-            margin="dense"
-            id="url"
-            name="url"
-            label="Photo URL"
-            type="text"
-            fullWidth
-            variant="standard"
-            onChange={(event) =>
-              setEmployeeData({
-                ...employeeData,
-                url: event.target.value,
-              })
-            }
-          />
+          {["name", "designation", "age", "bio", "url"].map((field) => (
+            <TextField
+              key={field}
+              autoFocus={field === "name"}
+              required
+              margin="dense"
+              id={field}
+              name={field}
+              label={field.charAt(0).toUpperCase() + field.slice(1)}
+              type="text"
+              fullWidth
+              variant="standard"
+              onChange={(event) =>
+                setEmployeeData({
+                  ...employeeData,
+                  [field]: event.target.value,
+                })
+              }
+              error={!!errors[field]}
+              helperText={errors[field]?._errors?.[0] || ""}
+            />
+          ))}
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
-          <Button
-            type="submit"
-            onClick={async () => {
-              const res = await fetch("http://localhost:3000/create-employee", {
-                method: "POST",
-                body: JSON.stringify({ ...employeeData }),
-                headers: {
-                  "Content-Type": "application/json",
-                },
-              });
-              const data = await res.json();
-              if (data.success) {
-                setChanges(!changes);
-              }
-              alert(data.message);
-            }}
-          >
+          <Button type="submit" onClick={handleSubmit}>
             Submit
           </Button>
         </DialogActions>
