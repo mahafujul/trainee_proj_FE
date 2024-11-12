@@ -16,33 +16,56 @@ import FormControl from "@mui/material/FormControl";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import Alert from "@mui/material/Alert";
-import clickHandler from "../helper/autoDataEntry";
+import FormHelperText from "@mui/material/FormHelperText";
+import { z } from "zod";
 
-const bull = (
-  <Box
-    component="span"
-    sx={{ display: "inline-block", mx: "2px", transform: "scale(0.8)" }}
-  >
-    •
-  </Box>
-);
+const validationSchema = z.object({
+  username: z.string().min(1, "Username is required"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
 
 export default function Signin() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState({});
   const navigation = useNavigate();
 
-  // Password Input Component related
-  const [showPassword, setShowPassword] = React.useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const handleClickShowPassword = () => setShowPassword((show) => !show);
+  const handleMouseDownPassword = (event) => event.preventDefault();
 
-  const handleMouseDownPassword = (event) => {
-    event.preventDefault();
+  const handleSubmit = async () => {
+    // Validate inputs using the Zod schema
+    try {
+      validationSchema.parse({ username, password });
+      setErrors({});
+
+      // Proceed with form submission
+      const res = await fetch("http://localhost:8080/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ userId: username, password }),
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      const data = await res.json();
+      if (data.success) {
+        navigation("/employees");
+        alert("Login successful");
+      } else {
+        alert(data.message);
+      }
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        const fieldErrors = {};
+        err.errors.forEach(({ path, message }) => {
+          fieldErrors[path[0]] = message;
+        });
+        setErrors(fieldErrors);
+      }
+    }
   };
-  const handleMouseUpPassword = (event) => {
-    event.preventDefault();
-  };
-  // Password Input Component related
 
   return (
     <Card sx={{ minWidth: 275 }}>
@@ -61,15 +84,17 @@ export default function Signin() {
           autoComplete="off"
         >
           <TextField
-            id="outlined-basic"
+            id="username"
             label="Username"
             variant="outlined"
             onChange={(event) => setUsername(event.target.value)}
+            error={!!errors.username}
+            helperText={errors.username}
           />
           <FormControl
             sx={{ m: 1, width: "25ch" }}
             variant="outlined"
-            onChange={(event) => setPassword(event.target.value)}
+            error={!!errors.password}
           >
             <InputLabel htmlFor="outlined-adornment-password">
               Password
@@ -77,6 +102,7 @@ export default function Signin() {
             <OutlinedInput
               id="outlined-adornment-password"
               type={showPassword ? "text" : "password"}
+              onChange={(event) => setPassword(event.target.value)}
               endAdornment={
                 <InputAdornment position="end">
                   <IconButton
@@ -87,7 +113,6 @@ export default function Signin() {
                     }
                     onClick={handleClickShowPassword}
                     onMouseDown={handleMouseDownPassword}
-                    onMouseUp={handleMouseUpPassword}
                     edge="end"
                   >
                     {showPassword ? <VisibilityOff /> : <Visibility />}
@@ -96,38 +121,18 @@ export default function Signin() {
               }
               label="Password"
             />
+            {errors.password && (
+              <FormHelperText error>{errors.password}</FormHelperText>
+            )}
           </FormControl>
-          <Button
-            variant="contained"
-            onClick={async () => {
-              const res = await fetch("http://localhost:3000/login", {
-                method: "POST",
-                body: JSON.stringify({
-                  username,
-                  password,
-                }),
-                credentials: "include", // Don't forget to specify this if you need cookies
-                headers: {
-                  "Content-Type": "application/json",
-                },
-              });
-              const data = await res.json();
-              if (data.success) {
-                navigation("/employees");
-                <Alert severity="success">This is a success Alert.</Alert>;
-                console.log(document.cookie);
-              }
-              alert(data.message);
-            }}
-          >
+          <Button variant="contained" onClick={handleSubmit}>
             Sign In
           </Button>
-          {/* <Button onClick={() => clickHandler()}>Add data</Button> */}
         </Stack>
       </CardContent>
       <CardActions>
         <Button size="small" onClick={() => navigation("/signup")}>
-          Don't have an account ?
+          Don't have an account?
         </Button>
       </CardActions>
     </Card>
