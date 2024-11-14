@@ -3,9 +3,23 @@ import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
-import DialogContent from "@mui/material.DialogContent";
+import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import { z } from "zod";
+
+// Define Zod schema for validation
+const employeeSchema = z.object({
+  name: z.string().min(1, { message: "Name is required" }),
+  designation: z.string().min(1, { message: "Designation is required" }),
+  age: z
+    .string()
+    .regex(/^[0-9]+$/, { message: "Age must be a number" })
+    .refine((age) => parseInt(age, 10) > 0, {
+      message: "Age must be positive",
+    }),
+  bio: z.string().min(1, { message: "Bio is required" }),
+  url: z.string().min(1, { message: "URL is required" }).optional(),
+});
 
 export default function AddNewEmployee({ setChanges }) {
   const [open, setOpen] = useState(false);
@@ -18,50 +32,61 @@ export default function AddNewEmployee({ setChanges }) {
   });
   const [errors, setErrors] = useState({});
 
-  const employeeSchema = z.object({
-    name: z.string().min(1, { message: "Name is required" }),
-    designation: z.string().min(1, { message: "Designation is required" }),
-    age: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
-      message: "Age must be a positive number",
-    }),
-    bio: z.string().min(1, { message: "Bio is required" }),
-    url: z
-      .string()
-      .url({ message: "Invalid URL format" })
-      .optional()
-      .or(z.literal("")),
-  });
+  const handleClickOpen = () => {
+    setOpen(true);
+  };
 
-  const handleClickOpen = () => setOpen(true);
-  const handleClose = () => setOpen(false);
+  const handleClose = () => {
+    setOpen(false);
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const formJson = Object.fromEntries(formData.entries());
 
     try {
-      const validatedData = employeeSchema.parse(formJson);
-      const res = await fetch("http://localhost:3000/create-employee", {
-        method: "POST",
-        body: JSON.stringify(validatedData),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      const data = await res.json();
-      if (data.success) {
-        setChanges((prev) => !prev);
-        alert(data.message);
-      } else {
-        alert(data.message);
+      // Validate employee data
+      const result = employeeSchema.safeParse(employeeData);
+      if (!result.success) {
+        const errorObj = result.error.format();
+        setErrors(
+          Object.keys(errorObj).reduce((acc, key) => {
+            acc[key] = errorObj[key]?._errors?.[0];
+            return acc;
+          }, {})
+        );
+        return;
       }
+
+      // Proceed with submission if validation passes
+      setErrors({});
+      const res = await fetch(
+        "http://localhost:8080/api/employee-controller/add",
+        {
+          method: "POST",
+          body: JSON.stringify({ ...employeeData }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error();
+      } else {
+        setChanges((prev) => !prev);
+        alert("The employee added successfully.");
+      }
+      setEmployeeData({ designation: "", name: "", age: "", bio: "", url: "" });
       handleClose();
     } catch (err) {
       if (err instanceof z.ZodError) {
-        const errorObject = err.format();
-        setErrors(errorObject);
+        const fieldErrors = {};
+        err.errors.forEach(({ path, message }) => {
+          fieldErrors[path[0]] = message;
+        });
+        setErrors(fieldErrors);
       }
+      console.log("error:", err);
     }
   };
 
@@ -74,28 +99,89 @@ export default function AddNewEmployee({ setChanges }) {
       <Dialog open={open} onClose={handleClose}>
         <DialogTitle>Add New Employee</DialogTitle>
         <DialogContent>
-          {["name", "designation", "age", "bio", "url"].map((field) => (
-            <TextField
-              key={field}
-              autoFocus={field === "name"}
-              required
-              margin="dense"
-              id={field}
-              name={field}
-              label={field.charAt(0).toUpperCase() + field.slice(1)}
-              type="text"
-              fullWidth
-              variant="standard"
-              onChange={(event) =>
-                setEmployeeData({
-                  ...employeeData,
-                  [field]: event.target.value,
-                })
-              }
-              error={!!errors[field]}
-              helperText={errors[field]?._errors?.[0] || ""}
-            />
-          ))}
+          <TextField
+            autoFocus
+            required
+            margin="dense"
+            id="name"
+            name="name"
+            label="Name"
+            type="text"
+            fullWidth
+            variant="standard"
+            value={employeeData.name}
+            onChange={(event) =>
+              setEmployeeData({ ...employeeData, name: event.target.value })
+            }
+            error={!!errors.name}
+            helperText={errors.name}
+          />
+          <TextField
+            required
+            margin="dense"
+            id="designation"
+            name="designation"
+            label="Designation"
+            type="text"
+            fullWidth
+            variant="standard"
+            value={employeeData.designation}
+            onChange={(event) =>
+              setEmployeeData({
+                ...employeeData,
+                designation: event.target.value,
+              })
+            }
+            error={!!errors.designation}
+            helperText={errors.designation}
+          />
+          <TextField
+            required
+            margin="dense"
+            id="age"
+            name="age"
+            label="Age"
+            type="text"
+            fullWidth
+            variant="standard"
+            value={employeeData.age}
+            onChange={(event) =>
+              setEmployeeData({ ...employeeData, age: event.target.value })
+            }
+            error={!!errors.age}
+            helperText={errors.age}
+          />
+          <TextField
+            required
+            margin="dense"
+            id="bio"
+            name="bio"
+            label="Bio"
+            type="text"
+            fullWidth
+            variant="standard"
+            value={employeeData.bio}
+            onChange={(event) =>
+              setEmployeeData({ ...employeeData, bio: event.target.value })
+            }
+            error={!!errors.bio}
+            helperText={errors.bio}
+          />
+          <TextField
+            margin="dense"
+            id="url"
+            name="url"
+            label="Photo URL"
+            type="text"
+            fullWidth
+            variant="standard"
+            value={employeeData.url}
+            onChange={(event) =>
+              setEmployeeData({ ...employeeData, url: event.target.value })
+            }
+            error={!!errors.url}
+            helperText={errors.url}
+          />
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
