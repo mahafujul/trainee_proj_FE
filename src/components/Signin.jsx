@@ -15,8 +15,9 @@ import InputAdornment from "@mui/material/InputAdornment";
 import FormControl from "@mui/material/FormControl";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
-import Alert from "@mui/material/Alert";
 import FormHelperText from "@mui/material/FormHelperText";
+import clickHandler from "../helper/autoDataEntry";
+
 import { z } from "zod";
 
 const validationSchema = z.object({
@@ -41,19 +42,18 @@ export default function Signin() {
       setErrors({});
 
       // Proceed with form submission
-      const res = await fetch("http://localhost:8080/api/auth/login", {
+      const response = await fetch("http://51.20.86.172:8080/api/auth/login", {
         method: "POST",
         body: JSON.stringify({ userId: username, password }),
-        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
       });
-      const data = await res.json();
-      if (data.success) {
-        navigation("/employees");
-        alert("Login successful");
+      const data = await response.json();
+      if (!response.ok) {
+        alert(data.error);
       } else {
+        navigation("/employees");
         alert(data.message);
       }
     } catch (err) {
@@ -68,73 +68,82 @@ export default function Signin() {
   };
 
   return (
-    <Card sx={{ minWidth: 275 }}>
-      <CardContent>
-        <Typography
-          gutterBottom
-          sx={{ fontSize: 20, textAlign: "center", marginBottom: 3 }}
-        >
-          LOGIN
-        </Typography>
-        <Stack
-          component="form"
-          sx={{ width: "25ch" }}
-          spacing={2}
-          noValidate
-          autoComplete="off"
-        >
-          <TextField
-            id="username"
-            label="Username"
-            variant="outlined"
-            onChange={(event) => setUsername(event.target.value)}
-            error={!!errors.username}
-            helperText={errors.username}
-          />
-          <FormControl
-            sx={{ m: 1, width: "25ch" }}
-            variant="outlined"
-            error={!!errors.password}
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
+      <Card sx={{ minWidth: 275 }}>
+        <CardContent>
+          <Typography
+            gutterBottom
+            sx={{ fontSize: 20, textAlign: "center", marginBottom: 3 }}
           >
-            <InputLabel htmlFor="outlined-adornment-password">
-              Password
-            </InputLabel>
-            <OutlinedInput
-              id="outlined-adornment-password"
-              type={showPassword ? "text" : "password"}
-              onChange={(event) => setPassword(event.target.value)}
-              endAdornment={
-                <InputAdornment position="end">
-                  <IconButton
-                    aria-label={
-                      showPassword
-                        ? "hide the password"
-                        : "display the password"
-                    }
-                    onClick={handleClickShowPassword}
-                    onMouseDown={handleMouseDownPassword}
-                    edge="end"
-                  >
-                    {showPassword ? <VisibilityOff /> : <Visibility />}
-                  </IconButton>
-                </InputAdornment>
-              }
-              label="Password"
+            LOGIN
+          </Typography>
+          <Stack
+            component="form"
+            sx={{ width: "25ch" }}
+            spacing={2}
+            noValidate
+            autoComplete="off"
+          >
+            <TextField
+              id="username"
+              label="Username"
+              variant="outlined"
+              onChange={(event) => setUsername(event.target.value)}
+              error={!!errors.username}
+              helperText={errors.username}
             />
-            {errors.password && (
-              <FormHelperText error>{errors.password}</FormHelperText>
-            )}
-          </FormControl>
-          <Button variant="contained" onClick={handleSubmit}>
-            Sign In
+            <FormControl
+              sx={{ m: 1, width: "25ch" }}
+              variant="outlined"
+              error={!!errors.password}
+            >
+              <InputLabel htmlFor="outlined-adornment-password">
+                Password
+              </InputLabel>
+              <OutlinedInput
+                id="outlined-adornment-password"
+                type={showPassword ? "text" : "password"}
+                onChange={(event) => setPassword(event.target.value)}
+                endAdornment={
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label={
+                        showPassword
+                          ? "hide the password"
+                          : "display the password"
+                      }
+                      onClick={handleClickShowPassword}
+                      onMouseDown={handleMouseDownPassword}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                }
+                label="Password"
+              />
+              {errors.password && (
+                <FormHelperText error>{errors.password}</FormHelperText>
+              )}
+            </FormControl>
+            <Button variant="contained" onClick={handleSubmit}>
+              Sign In
+            </Button>
+            {/* <Button onClick={() => clickHandler()}>Add data</Button> */}
+          </Stack>
+        </CardContent>
+        <CardActions>
+          <Button size="small" onClick={() => navigation("/signup")}>
+            Don't have an account?
           </Button>
-        </Stack>
-      </CardContent>
-      <CardActions>
-        <Button size="small" onClick={() => navigation("/signup")}>
-          Don't have an account?
-        </Button>
-      </CardActions>
-    </Card>
+        </CardActions>
+      </Card>
+    </div>
   );
 }

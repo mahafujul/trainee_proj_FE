@@ -15,6 +15,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import Header from "./Header";
 import AddNewEmployee from "./AddNewEmployee";
 import { useNavigate } from "react-router-dom";
+import { Fullscreen } from "@mui/icons-material";
 
 export default function Employees() {
   const [employees, setEmployees] = useState([]);
@@ -24,84 +25,75 @@ export default function Employees() {
   useEffect(() => {
     (async function () {
       setLoading(true);
-      const responce = await fetch(
-        "http://localhost:8080/api/employee-controller",
+      const response = await fetch(
+        "http://51.20.86.172:8080/api/employee-controller",
         {
           //http://localhost:3000/get-all-employees
           method: "GET",
         }
       );
-      const data = await responce.json();
+      const data = await response.json();
       // setEmployees(data.employees);
       setEmployees(data);
       setLoading(false);
     })();
   }, [changes]);
 
-  const navigation = useNavigate();
-
-  if (document.cookie == null) {
-    console.log("I am inside if block.");
-    navigation("/");
-  } else {
-    if (loading) {
-      return (
-        <div
-          style={{ display: "flex", height: "100%", justifyContent: "center" }}
-        >
-          <h1>Loading...</h1>
-        </div>
-      );
-    }
+  if (loading) {
     return (
-      <div>
-        <div style={{ marginBottom: 10 }}>
-          <Header></Header>
-        </div>
-        <div
-          style={{ display: "flex", marginBottom: 10, justifyContent: "right" }}
-        >
-          <AddNewEmployee setChanges={setChanges} />
-        </div>
-        <Box sx={{ flexGrow: 1 }}>
-          <Grid container spacing={2}>
-            {employees?.map((employee, index) => {
-              return (
-                <Grid item xs={3} key={index}>
-                  <Card sx={{ maxWidth: 345 }}>
-                    <CardActionArea>
-                      <CardMedia
-                        component="img"
-                        height="400"
-                        image={
-                          employee.url
-                            ? `${employee.url}`
-                            : "/passport_photo_male.jpg"
-                        }
-                        alt="green iguana"
-                      />
-                      <CardContent>
-                        <Typography gutterBottom variant="h5" component="div">
-                          {employee.name}
-                        </Typography>
-                        <Typography gutterBottom variant="h6" component="div">
-                          {employee.designation}
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          sx={{ color: "text.secondary" }}
-                        >
-                          {employee.bio}
-                        </Typography>
-                      </CardContent>
-                    </CardActionArea>
-                  </Card>
-                </Grid>
-              );
-            })}
-          </Grid>
-        </Box>
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <h1>Loading...</h1>
       </div>
     );
   }
+  return (
+    <div>
+      <div style={{ marginBottom: 10 }}>
+        <Header></Header>
+      </div>
+      <div
+        style={{ display: "flex", marginBottom: 10, justifyContent: "right" }}
+      >
+        <AddNewEmployee setChanges={setChanges} />
+      </div>
+      <Box sx={{ flexGrow: 1 }}>
+        <Grid container spacing={2}>
+          {employees?.map((employee, index) => {
+            return (
+              <Grid item xs={3} key={index}>
+                <Card sx={{ maxWidth: 345 }}>
+                  <CardActionArea>
+                    <CardMedia
+                      component="img"
+                      height="400"
+                      image={
+                        employee.url
+                          ? `${employee.url}`
+                          : "/passport_photo_male.jpg"
+                      }
+                      alt="green iguana"
+                    />
+                    <CardContent>
+                      <Typography gutterBottom variant="h5" component="div">
+                        {employee.name}
+                      </Typography>
+                      <Typography gutterBottom variant="h6" component="div">
+                        {employee.designation}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: "text.secondary" }}
+                      >
+                        {employee.bio}
+                      </Typography>
+                    </CardContent>
+                  </CardActionArea>
+                </Card>
+              </Grid>
+            );
+          })}
+        </Grid>
+      </Box>
+    </div>
+  );
 }

@@ -60,7 +60,7 @@ export default function AddNewEmployee({ setChanges }) {
       // Proceed with submission if validation passes
       setErrors({});
       const res = await fetch(
-        "http://localhost:8080/api/employee-controller/add",
+        "http://51.20.86.172:8080/api/employee-controller/add",
         {
           method: "POST",
           body: JSON.stringify({ ...employeeData }),
